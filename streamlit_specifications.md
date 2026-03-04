@@ -1,151 +1,115 @@
 
-# Streamlit Application Specification: NexusBank Credit Risk Stress-Testing Suite
+# Application Specification: NexusBank Robustness & Functional Validation Suite
 
 ## 1. Application Overview
-The **NexusBank Credit Risk Stress-Testing Suite** is a functional validation platform designed for Model Validators (Alex) and ML Engineers. It operationalizes the "Validation Gate" required before model deployment. The application allows users to simulate real-world operational shifts—such as economic shocks, data corruption, and subgroup disparities—to determine if a model remains robust and safe.
+This application provides a rigorous stress-testing environment for Alex, a Model Validator at NexusBank, to evaluate the **NexusBank Credit Risk Model**. The app operationalizes functional validation by simulating real-world operational shifts (noise, economic shifts, and data missingness) to determine if a model remains robust enough for production deployment.
 
-### High-Level Story Flow
-1.  **Environment Setup**: User uploads the Credit Risk Model (`.pkl`) and the clean validation dataset (`.csv`).
-2.  **Baseline Lockdown**: The app calculates performance metrics and calibration on the "clean" data to establish a benchmark.
-3.  **Stress Configuration**: Users interactively define deterministic stress scenarios (Noise, Scaling Shifts, Missingness) using sliders and feature selectors.
-4.  **Robustness Evaluation**: The system executes scenarios, calculating degradation relative to the baseline and checking against institutional risk thresholds.
-5.  **Granular Vulnerability Analysis**: A deep dive into specific sensitive subgroups and tail slices (extreme values) to identify hidden risks.
-6.  **Audit & Decision**: An automated Go/No-Go recommendation is generated based on violation counts, and a cryptographically signed evidence bundle is packaged for download.
+### Story Flow
+1.  **Environment Setup**: The user (Alex) uploads the Credit Risk Model and the clean operational dataset.
+2.  **Baseline Benchmarking**: The app calculates and "locks" the model's performance metrics under ideal conditions.
+3.  **Stress Configuration**: Alex uses interactive controls to define stress scenarios (Gaussian noise, economic shifts, missingness spikes).
+4.  **Vulnerability Deep-Dive**: Analysis is extended to specific sensitive subgroups (e.g., Credit Score Bands) and tail slices (extreme percentiles).
+5.  **Audit & Decision**: The app automates a Go/No-Go decision based on pre-defined risk thresholds and generates a cryptographic evidence bundle for regulatory compliance.
 
 ---
 
 ## 2. Code Requirements
 
-### Import Statement
+### Imports
 ```python
 from source import *
 import streamlit as st
-import os
 import pandas as pd
 import numpy as np
-from datetime import datetime
+import os
+import tempfile
 ```
 
-### Session State Management
-The following keys must be initialized in `st.session_state`:
-*   `run_id`: Unique timestamp for the session (initialized via `datetime.now().strftime("%Y%m%d_%H%M%S")`).
-*   `assets_loaded`: Boolean (False).
-*   `X_baseline`, `y_baseline`, `sensitive_attr_baseline`, `model`: Objects returned by `load_assets`.
-*   `baseline_metrics`: Dict returned by `evaluate_model_performance`.
-*   `scenario_results`: List (starts with `baseline_metrics`).
-*   `scenario_config`: Dict for capturing transformation parameters.
-*   `final_decision`: String.
-*   `final_recommendation`: String.
-*   `output_dir`: String path using `RUN_ID`.
+### Session State Initialization
+The following keys must be initialized to manage the multi-step validation workflow:
+*   `model`: Loaded model object.
+*   `data_loaded`: Boolean flag.
+*   `X_baseline`: Baseline features.
+*   `y_baseline`: Baseline targets.
+*   `sensitive_attr_baseline`: Sensitive attribute series.
+*   `baseline_metrics`: Dict containing baseline scores.
+*   `all_scenario_results`: List of result dictionaries (starting with baseline).
+*   `scenario_config`: Dictionary storing parameters for each run.
+*   `validation_complete`: Boolean flag to gate the export section.
 
-### UI Interaction to Function Mapping
+### UI Layout and Interaction
 
-| UI Component | Interaction | Function Call |
-| :--- | :--- | :--- |
-| **File Uploader** | On Model/CSV Upload | `load_assets(data_path, model_path, FEATURES, TARGET)` |
-| **Calculate Baseline** | Button Click | `evaluate_model_performance(...)` |
-| **Noise Slider/Selector** | "Run Noise Test" Button | `run_and_evaluate_scenario(...)` |
-| **Shift Slider/Selector** | "Run Shift Test" Button | `run_and_evaluate_scenario(...)` |
-| **Missingness Slider** | "Run Missingness Test" Button | `run_and_evaluate_scenario(...)` |
-| **Subgroup Selector** | "Analyze Subgroup" Button | `evaluate_subgroup_stress(...)` |
-| **Tail Slice Selector** | "Analyze Tail Slice" Button | `evaluate_tail_slice_stress(...)` |
-| **Final Evaluation** | Auto-run/Button | `check_threshold_violations(...)` and `make_go_no_go_decision(...)` |
-| **Export Bundle** | Button Click | `generate_evidence_artifacts(...)` |
+#### Sidebar: Global Configuration
+*   **Threshold Management**: Interactive sliders to adjust `CRITICAL_THRESHOLDS` and `WARN_THRESHOLDS` (initialized from `source.py` constants).
+*   **Reproducibility**: Display the `RANDOM_SEED = 42`.
 
----
+#### Tab 1: Setup & Assets
+*   **Model Upload**: `st.file_uploader` for `.pkl` files.
+*   **Data Upload**: `st.file_uploader` for `.csv` files.
+*   **Action**: "Initialize Validation Session" button calls `load_assets`.
+*   **Validation**: Check schema alignment using `preprocess_stressed_data`.
 
-## 3. Application Structure and Flow
-
-### Header & Persona Context
-*   **Title**: `NexusBank Model Robustness Validation Suite`
-*   **Persona Information**: Display a sidebar bio for "Alex, Model Validator" focusing on the quest to ensure model reliability under economic shifts.
-
-### Tab 1: Setup & Baseline
-1.  **File Uploaders**:
-    *   Model file (`.pkl`)
-    *   Dataset file (`.csv`)
-2.  **Logic**: Once uploaded, call `load_assets`.
-3.  **Baseline Performance**:
-    *   Display a "Lock Baseline" button.
-    *   On click, run `evaluate_model_performance`.
-    *   Display metrics (AUC, Accuracy, Precision, Recall, Brier Score) in `st.metric` columns.
-4.  **Formulas**:
+#### Tab 2: Baseline Assessment
+*   **Metric Display**: Call `evaluate_model_performance` on the raw data.
+*   **Formula Rendering**:
     ```python
     st.markdown(r"$$ BS = \frac{1}{N} \sum_{i=1}^{N} (f_i - y_i)^2 $$")
-    st.markdown(r"where $N$ is the number of samples, $f_i$ is the predicted probability for sample $i$, and $y_i$ is the actual outcome (0 or 1).")
+    st.markdown(r"where $N$ is the number of samples, $f_i$ is the predicted probability, and $y_i$ is the actual outcome.")
     ```
+*   **Subgroup Delta**: Display `max_subgroup_delta_auc` and a breakdown by `SENSITIVE_ATTRIBUTE`.
 
-### Tab 2: Deterministic Stress Testing
-1.  **Global Seed Display**: Show `RANDOM_SEED = 42` as a locked constant.
-2.  **Scenario Builders**:
-    *   **Gaussian Noise**: 
-        *   Multi-select: Features (Default: `['Age', 'Income', 'LoanAmount', 'CreditScore']`)
-        *   Slider: `noise_std_multiplier` (Range 0.0 to 2.0).
-        *   Action: Button "Inject Noise & Evaluate".
-    *   **Feature Scaling Shift (Economic Shock)**:
-        *   Multi-select: Features (Default: `['Income', 'LoanAmount']`)
-        *   Slider: `shift_factor` (Range 0.5 to 1.5).
-        *   Action: Button "Apply Shift & Evaluate".
-    *   **Missingness Spike**:
-        *   Multi-select: Features (Default: `['CreditScore', 'LoanDuration']`)
-        *   Slider: `missing_rate` (Range 0.0 to 0.5).
-        *   Action: Button "Introduce Missingness & Evaluate".
-3.  **Real-time Degradation Tracking**:
-    *   Use the formula:
-    ```python
-    st.markdown(r"$$ \text{Degradation} (\%) = \frac{\text{Baseline Metric} - \text{Stressed Metric}}{\text{Baseline Metric}} \times 100 $$")
-    st.markdown(r"where a positive value indicates a drop in performance from baseline.")
-    ```
-4.  **Output**: Display the running results table using `st.dataframe` or `display_results_table`.
+#### Tab 3: Stress Scenario Builder
+*   **Scenario Selection**: Radio buttons for (1) Gaussian Noise, (2) Economic Shift, (3) Missingness Spike.
+*   **Dynamic Sliders**:
+    *   Gaussian Noise: `noise_std_multiplier` slider (0.0 to 2.0).
+    *   Economic Shift: `shift_factor` slider (0.5 to 1.5).
+    *   Missingness: `missing_rate` slider (0.0 to 0.5).
+*   **Run Button**: Triggers `run_and_evaluate_scenario`.
+*   **Results Table**: Render the table using `display_results_table` after each run.
 
-### Tab 3: Vulnerability Drill-Down
-1.  **Subgroup Stress**:
-    *   Dropdown: Select from unique values in `sensitive_attr_baseline` (e.g., 'Poor', 'Fair').
-    *   Action: Button "Analyze Subgroup Fairness".
-    *   Display: `Max Subgroup Delta AUC` using:
+#### Tab 4: Vulnerability Analysis
+*   **Subgroup Stress**: Select group (e.g., 'Poor') and call `evaluate_subgroup_stress`.
+*   **Tail Slicing**: Select feature (e.g., 'Income'), percentile (10th/90th), and type (top/bottom) to call `evaluate_tail_slice_stress`.
+*   **Formula Rendering**:
     ```python
     st.markdown(r"$$ \text{Max Subgroup Delta AUC} = \max_{g \in \text{Groups}} |\text{AUC}_g - \text{AUC}_{\text{Overall}}| $$")
-    st.markdown(r"where $g$ represents specific customer subgroups.")
+    st.markdown(r"where $\text{AUC}_g$ is the AUC for a specific subgroup $g$ and $\text{AUC}_{\text{Overall}}$ is the total dataset AUC.")
     ```
-2.  **Tail Slice Analysis**:
-    *   Dropdown: Select Numeric Feature.
-    *   Slider: Percentile (1-99).
-    *   Radio: Slice Type ("top" or "bottom").
-    *   Action: Button "Check Edge Case Performance".
 
-### Tab 4: Validation Decision & Export
-1.  **Threshold Visuals**:
-    *   Call `plot_degradation_curves` and display the saved image.
-    *   Show critical thresholds (AUC < 0.70) and warning thresholds (AUC < 0.75).
-2.  **Violation Summary**:
-    *   Run `check_threshold_violations`.
-    *   Display color-coded cards: **Red** for Critical, **Orange** for Warning.
-3.  **Final Recommendation**:
-    *   Run `make_go_no_go_decision`.
-    *   Display large header: `STATUS: [Decision]`.
-4.  **Evidence Bundling**:
-    *   Button: "Generate Audit-Ready Archive".
-    *   On click, run `generate_evidence_artifacts`.
-    *   **Integrity Hashing**:
-    ```python
-    st.markdown(f"Evidence integrity verified via SHA-256 manifest. Session ID: {st.session_state.run_id}")
-    ```
-    *   Provide `st.download_button` for the resulting `.zip` file.
+#### Tab 5: Executive Decision & Audit
+*   **Automated Recommendation**: Call `check_threshold_violations` followed by `make_go_no_go_decision`.
+*   **Visualization**:
+    *   Display the "Degradation Curves" using `plot_degradation_curves`.
+*   **Evidence Packaging**:
+    *   Button to trigger `generate_evidence_artifacts`.
+    *   **Integrity Check**: Display SHA-256 hashes generated by `calculate_sha256`.
+    *   **Download**: `st.download_button` for the `Session_06_<run_id>.zip` file.
 
 ---
 
-## 4. Typography & Styling
-*   **Sidebar Navigation**: Clear section headers for "1. Baseline", "2. Stressors", "3. Vulnerabilities", "4. Report".
+## 3. Workflow Logic & Determinism
+
+### Degradation Calculation
+The application must display the logic used for metrics:
+```python
+st.markdown(r"$$ \text{Degradation} (\%) = \frac{\text{Baseline Metric} - \text{Stressed Metric}}{\text{Baseline Metric}} \times 100 $$")
+st.markdown(r"where a positive result represents a decline in model quality for metrics like AUC.")
+```
+
+### Determinism Policy
+*   All transformation functions (`apply_gaussian_noise`, etc.) must be passed `RANDOM_SEED = 42`.
+*   Session state must be reset if new data or model files are uploaded to prevent state pollution.
+
+### Error Handling
+*   Display a warning if a tail slice or subgroup has insufficient samples for AUC calculation (handled via `evaluate_model_performance` returning `NaN`).
+*   Catch `FileNotFoundError` during hashing processes.
+
+---
+
+## 4. Typography & Visual System
+*   **Primary Font**: Inter / Sans-serif.
 *   **Status Indicators**: 
-    *   `st.success` for PASS
-    *   `st.warning` for WARN
-    *   `st.error` for CRITICAL FAIL
-*   **Monospace Logs**: Display internal scenario outputs in `st.code` blocks to simulate a "Validator's Log".
-
----
-
-## 5. Safety & Error Handling
-*   **File Alignment**: If user-uploaded CSV features do not match `FEATURES` list, display a warning and use `preprocess_stressed_data` to align columns.
-*   **Empty Subgroups**: If a selected subgroup has insufficient samples for AUC computation, display `st.warning("Insufficient subgroup sample size for metrics.")`.
-*   **State Locking**: Disable "Run Tests" buttons until "Calculate Baseline" has been executed.
-
+    *   `PASS`: Green badge.
+    *   `WARN`: Orange badge.
+    *   `CRITICAL FAIL`: Red badge.
+*   **Charts**: Dual-pane bar charts for AUC and Brier Score comparison with horizontal dotted lines for thresholds.
