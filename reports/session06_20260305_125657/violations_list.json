@@ -1,0 +1,41 @@
+{
+    "critical_violations": [
+        {
+            "scenario": "Tail (Low Income)",
+            "metric": "AUC Degradation (%)",
+            "value": 21.701255312393723,
+            "threshold": 15.0,
+            "type": "CRITICAL_AUC_DEGRADATION"
+        },
+        {
+            "scenario": "Tail (Low Income)",
+            "metric": "Brier Score",
+            "value": 0.2722548550875839,
+            "threshold": 0.25,
+            "type": "CRITICAL_MAX_BRIER"
+        },
+        {
+            "scenario": "Tail (Low Income)",
+            "metric": "Max Subgroup Delta AUC",
+            "value": 0.2502923976608187,
+            "threshold": 0.1,
+            "type": "CRITICAL_SUBGROUP_DELTA"
+        }
+    ],
+    "warn_violations": [
+        {
+            "scenario": "Gaussian Noise",
+            "metric": "Max Subgroup Delta AUC",
+            "value": 0.08128071045500496,
+            "threshold": 0.05,
+            "type": "WARN_SUBGROUP_DELTA"
+        },
+        {
+            "scenario": "Tail (Low Income)",
+            "metric": "AUC",
+            "value": 0.7052631578947369,
+            "threshold": 0.75,
+            "type": "WARN_MIN_AUC"
+        }
+    ]
+}

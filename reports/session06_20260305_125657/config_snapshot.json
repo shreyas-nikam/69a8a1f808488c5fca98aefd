@@ -1,0 +1,48 @@
+{
+    "run_id": "20260305_125657",
+    "random_seed": 42,
+    "features": [
+        "Age",
+        "Income",
+        "LoanAmount",
+        "CreditScore",
+        "LoanDuration",
+        "DependentCount"
+    ],
+    "target": "true_label",
+    "scenario_configurations": {
+        "noise_custom": {
+            "features": [
+                "Age",
+                "Income",
+                "LoanAmount",
+                "CreditScore"
+            ],
+            "noise_std_multiplier": 0.5
+        },
+        "shift_custom": {
+            "features": [
+                "Income",
+                "LoanAmount"
+            ],
+            "shift_factor": 0.8
+        },
+        "missing_custom": {
+            "features": [
+                "CreditScore",
+                "LoanDuration",
+                "Income"
+            ],
+            "missing_rate": 0.2
+        },
+        "sub_poor": {
+            "sensitive_attribute": "credit_score_band",
+            "target_group": "Poor"
+        },
+        "tail_income": {
+            "feature": "Income",
+            "percentile": 10,
+            "slice_type": "bottom"
+        }
+    }
+}

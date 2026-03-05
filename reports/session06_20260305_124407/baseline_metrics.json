@@ -1,0 +1,20 @@
+{
+    "scenario": "Baseline",
+    "num_samples": 1000,
+    "accuracy": 0.881,
+    "auc": 0.9007336716681377,
+    "precision": 0.7478260869565218,
+    "recall": 0.48863636363636365,
+    "brier_score": 0.08630455942404248,
+    "auc_Excellent": 0.8835195530726256,
+    "auc_Fair": 0.9141081871345029,
+    "auc_Good": 0.8789346246973366,
+    "auc_Poor": 0.8963892249888556,
+    "max_subgroup_delta_auc": 0.02179904697080104,
+    "subgroup_deltas": {
+        "delta_auc_auc_Excellent": 0.01721411859551203,
+        "delta_auc_auc_Fair": 0.013374515466365255,
+        "delta_auc_auc_Good": 0.02179904697080104,
+        "delta_auc_auc_Poor": 0.004344446679282021
+    }
+}

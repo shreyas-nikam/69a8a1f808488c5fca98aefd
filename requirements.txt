@@ -10,3 +10,4 @@ plotly
 requests
 joblib
 scikit-learn-intelex
+tabulate

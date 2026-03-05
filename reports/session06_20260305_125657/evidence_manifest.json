@@ -1,0 +1,26 @@
+{
+    "baseline_metrics.json": {
+        "path": "baseline_metrics.json",
+        "sha256": "e5c2039b37126fe22d0a86a0bc8f222c3ae0989320f51d78e5566dd9e130edb4"
+    },
+    "scenario_results.json": {
+        "path": "scenario_results.json",
+        "sha256": "aeed10ec65303f46a6e3fc5a20cf4bc5fc1cd6ad69bc72882e003fc9ed3c8751"
+    },
+    "violations_list.json": {
+        "path": "violations_list.json",
+        "sha256": "9516728ce4d4ee1a987def9d0a161f255b9373e7c09df045b3ad4b21ef290ff6"
+    },
+    "degradation_curves.png": {
+        "path": "degradation_curves.png",
+        "sha256": "1a794be281aded380e783896fcaf2ad230ba03973cf5e83dbc6908909ab363d1"
+    },
+    "session06_executive_summary.md": {
+        "path": "session06_20260305_125657_executive_summary.md",
+        "sha256": "c126d4012903cc0b14349592d38b6103ae4d131b755d65e9e7128509f110f1d3"
+    },
+    "config_snapshot.json": {
+        "path": "config_snapshot.json",
+        "sha256": "3673ec114471a245d6333962a2cccc8ba3287f5f571dbff6f38b2a39435f136f"
+    }
+}
